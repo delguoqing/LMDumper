@@ -249,11 +249,13 @@ def make_normal_sprite(ctx, d, subds):
 			if color_mul_idx < 0:
 				color_mul = None
 			else:
-				color_mul = [c/256.0 for c in color_list[color_mul_idx]]
+				c = color_list[color_mul_idx]
+				color_mul = [c["R"]/256.0, c["G"]/256.0, c["B"]/256.0, c["A"]/256.0]
 			if color_add_idx < 0:
 				color_add = None
 			else:
-				color_add = color_list[color_add_idx]
+				c = color_list[color_mul_idx]
+				color_add = [c["R"], c["G"], c["B"], c["A"]]
 			if flags & swf_helper.PLACE_FLAG_HAS_COLOR_TRANSFORM:
 				color_trans = \
 					swf_helper.pack_color_transform_with_alpha(
@@ -303,7 +305,11 @@ def dump(fname, ID, label, pos, scale, fout, img_path, norecreate):
 	for off, tag_type, tag_size_bytes, tag in iter_tag(lm_data):
 		d = tag_reader.read_tag(format.DATA[tag_type], tag)
 		if d["tag_type"] == 0xF001:
-			pass			
+			ctx["symbol_list"] = []
+			for symbol_info in d["symbol_list"]:
+				ctx["symbol_list"].append(symbol_info["symbol"])
+		elif d["tag_type"] == 0xF002:
+			
 
 		
 	# init
