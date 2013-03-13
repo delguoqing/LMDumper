@@ -46,13 +46,11 @@ def read_tagF022(tag):
 
 	res = tag_reader.read_tag(format.DATA[0xF022], tag)
 	character_id = res["character_id"]
-	unk1 = res["const0_0"]
+	unk1 = res["const0_0"] or 0
 	assert unk1 == 0
 	size_idx = res["size_idx"]
 	f023_cnt = res["f023_cnt"]
-	f024_cnt = res["f024_cnt"]
-	if f024_cnt is None:
-		f024_cnt = 0
+	f024_cnt = res["f024_cnt"] or 0
 	
 	return character_id, unk1, size_idx, f023_cnt, f024_cnt
 
@@ -166,6 +164,10 @@ def list_tag0027_symbol(lm_data, fname=""):
 		key_frame_cnt = res["key_frame_cnt"]
 		max_depth, unk2 = res["max_depth"], res["const1_0"]
 		class_name = symbol_list[class_name_idx]
+		
+		unk1 = unk1 or 0
+		unk2 = unk2 or 0
+		
 		ret.append((tag_type, off, tag_size_bytes, characterID, tag0001_cnt, frame_label_cnt, max_depth, class_name, key_frame_cnt, unk1, unk2))
 		
 #		assert unk1 == 0
@@ -270,7 +272,7 @@ def list_tagF024_img(lm_data):
 						d["x3"], d["y3"], d["u3"], d["v3"],
 						]
 			flag, idx = d["fill_style"], d["fill_idx"]
-			unk = d["const0_0"]
+			unk = d["const0_0"] or 0
 
 			x_min = min(x_min, fv_list[0], fv_list[4], fv_list[8], fv_list[12])
 			x_max = max(x_max, fv_list[0], fv_list[4], fv_list[8], fv_list[12])
@@ -283,7 +285,7 @@ def list_tagF024_img(lm_data):
 				ori_pic_tga_idx = ori_pic_list[idx][0]
 				sb = symbol_list[ori_pic_fname_idx]
 				if not sb:
-					sb = "[IMAGE%d]" % ori_pic_list[idx][0]
+					sb = "[TEXPACK_%d]" % ori_pic_list[idx][0]
 
 				print "\ttag:0x%04x, off=0x%x,\tsize=0x%x,\tfill_img=%s" \
 					% (tag_type, off, tag_size_bytes, sb)
@@ -300,7 +302,9 @@ def list_tagF024_img(lm_data):
 				print "\t\t",fv_list[4:8]
 				print "\t\t",fv_list[8:12]
 				print "\t\t",fv_list[12:]			
-
+			
+			assert unk == 0
+			
 		elif tag_type == 0x0027:
 			break
 		elif tag_type == 0xFF00:
@@ -403,6 +407,7 @@ def list_tag0004_symbol(lm_data):
 					matrix_list[trans_idx][1], 
 					matrix_list[trans_idx][2])
 			else:	# tricky!!!, find the first 0x8
+					# TODO: need to fix this!
 				trans_idx = trans_idx & 0xFFFFFFFF
 				bit_cnt = 28
 				while True:
@@ -520,15 +525,14 @@ def list_tagF00B_symbol(lm_data):
 		return		
 	assert False, "Missing tag F00B"
 				
-def list_tagF007_symbol(lm_data, prefix_for_noname=""):
+def list_tagF007_symbol(lm_data):
 	symbol_list = get_symbol_list(lm_data[0x40:])
 	for off, tag_type, tag_size_bytes, tag in iter_tag(lm_data, (0xF007,)):
 		res = tag_reader.read_tag(format.DATA[0xF007], tag)
 		image_list = []
 		for image_info in res["img_list"]:
 			if symbol_list[image_info["name_idx"]] == "":
-				fname = "noname_%s_0x%x.png" % (prefix_for_noname, 
-					image_info["img_idx"])
+				fname = "noname_0x%x.png" % (image_info["img_idx"], )
 			else:
 				fname = symbol_list[image_info["name_idx"]]
 			image_list.append((image_info["img_idx"], image_info["name_idx"], image_info["width"], image_info["height"], fname))
