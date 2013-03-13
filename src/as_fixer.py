@@ -11,6 +11,7 @@
 #	4. for each record, if 2 or 3 is applied, fix the 'size' field if any.
 #	5. Save all fixed record and their fixed offset in a list.
 #	6. for jump, branch, fix the offset. for define function, fix code size.
+#	7. Add a constant pool at the head.
 
 import struct
 
@@ -168,6 +169,12 @@ def fix_offset(rec_list, off_list, frec_list, foff_list):
 
 	return fixed2_list					
 	
+def build_constant_pool(symbol_table):
+	constant_pool = "".join([str+"\x00" for str in symbol_table])
+	action_constant_pool = struct.pack("<BHH", 0x88, 2+len(constant_pool), 
+		len(symbol_table)) + constant_pool
+	return action_constant_pool
+	
 def fix(abc, symbol_list, format):
 	rec_list, off_list = split(abc)
 	frec_list, foff_list = [], [0,]
@@ -178,5 +185,6 @@ def fix(abc, symbol_list, format):
 	foff_list = foff_list[:-1]
 	
 	fixed2_list = fix_offset(rec_list, off_list, frec_list, foff_list)
-		
-	return "".join(fixed2_list)
+	constant_pool = build_constant_pool(symbol_list)
+	
+	return constant_pool + "".join(fixed2_list)
