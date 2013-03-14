@@ -70,9 +70,15 @@ def make_imgs(ctx):
 		fname = fname[:idx] + ".png"
 		
 		# store image data in a dict
-		f = open(os.path.join(root, fname), "rb")
-		image_data = f.read()
-		f.close()
+		try:
+			f = open(os.path.join(root, fname), "rb")
+			image_data = f.read()
+			f.close()
+		except IOError:
+			fname = "noname_%d.png" % img_info["img_idx"]
+			f = open(os.path.join(root, fname), "rb")
+			image_data = f.read()
+			f.close()
 		
 		cid = ctx["last_cid"]
 		ctx["last_cid"] += 1
@@ -145,7 +151,7 @@ def make_normal_sprite(ctx, d, subds):
 	frame_label_cnt = d["frame_label_cnt"]
 	frame_cnt = d["0001_cnt"]
 	sprite_id = d["character_id"]
-	print "sprite id = %d" % sprite_id
+#	print "sprite id = %d" % sprite_id
 	frame_label_dict = {}
 	
 	# build a frame label dict for later ref	
@@ -155,7 +161,7 @@ def make_normal_sprite(ctx, d, subds):
 		frame_label = symbol_list[subd["name_idx"]]
 		frame_label_dict[frame_id] = frame_label
 		
-	print "frame_label_cnt = %d" % frame_label_cnt
+#	print "frame_label_cnt = %d" % frame_label_cnt
 	# handle the rest, all the frames
 	sub_tags = []
 	depth2matrix = {}
@@ -173,7 +179,7 @@ def make_normal_sprite(ctx, d, subds):
 			else:
 				clip_actions = None
 				
-			ptag = swf_helper.make_place_object2_tag(flags, depth, id, 
+			ptag = swf_helper.make_place_object2_tag(flags, depth + 1, id, 
 				name=name, matrix=matrix, color_trans=color_trans, clip_actions=clip_actions, ratio=ratio, clip_depth=clip_depth)
 			sub_tags.append(ptag)
 			
@@ -222,7 +228,7 @@ def make_normal_sprite(ctx, d, subds):
 			if _flags & 2:
 				flags |= swf_helper.PLACE_FLAG_MOVE
 			id = subd["character_id"]
-			print "sub character id = %d" % id
+#			print "sub character id = %d" % id
 			trans_idx = subd["trans_idx"]
 			if trans_idx == -1:
 				pass
@@ -268,7 +274,7 @@ def make_normal_sprite(ctx, d, subds):
 			if color_add_idx < 0:
 				color_add = None
 			else:
-				c = color_list[color_mul_idx]
+				c = color_list[color_add_idx]
 				color_add = [c["R"], c["G"], c["B"], c["A"]]
 			if flags & swf_helper.PLACE_FLAG_HAS_COLOR_TRANSFORM:
 				color_trans = \
@@ -292,7 +298,7 @@ def make_normal_sprite(ctx, d, subds):
 
 			if flags & swf_helper.PLACE_FLAG_HAS_CHARACTER and \
 				flags & swf_helper.PLACE_FLAG_MOVE:
-				sub_tags.append(swf_helper.make_remove_object2_tag(depth))
+				sub_tags.append(swf_helper.make_remove_object2_tag(depth + 1))
 				flags &= (0xFFFF - swf_helper.PLACE_FLAG_MOVE)
 				if not (flags & swf_helper.PLACE_FLAG_HAS_MATRIX):
 					flags |= swf_helper.PLACE_FLAG_HAS_MATRIX
@@ -300,7 +306,8 @@ def make_normal_sprite(ctx, d, subds):
 			
 			clip_action_cnt = subd["clip_action_cnt"]
 			clip_action_records = []
-	
+
+	sub_tags.append(swf_helper.make_end_tag())	
 	return swf_helper.make_define_sprite_tag(sprite_id, frame_cnt, sub_tags)
 	
 def dump(fname, ID, label, pos, scale, fout, img_path, norecreate):
@@ -363,9 +370,14 @@ def dump(fname, ID, label, pos, scale, fout, img_path, norecreate):
 	all_tags.extend(img_tags)
 	
 	# make all Texture sprite tags
+	tex_sprite_tags = []
 	for data in ctx["tex_sprite"]:
-		all_tags.extend(make_tex_sprite(ctx, data[0], data[1:]))
-	
+		tex_sprite_tags.extend(make_tex_sprite(ctx, data[0], data[1:]))
+
+	# make all DefineShape tags
+	all_tags.extend(ctx["shape_tags"])
+	all_tags.extend(tex_sprite_tags)
+		
 	# make all normal sprite tags
 	for data in ctx["normal_sprite"]:
 		all_tags.extend(make_normal_sprite(ctx, data[0], data[1:]))	
@@ -452,3 +464,4 @@ if __name__ == "__main__":
 				print dic.keys()		
 		else:
 			dump(filename, options.characterID, options.label, options.pos, options.scale, options.fout, options.texture_root, options.norecreate)
+			

@@ -199,6 +199,7 @@ def list_tagF024_img(lm_data):
 	size = (x_min, y_min, x_max, y_max)
 					
 	for off, tag_type, tag_size_bytes, tag in iter_tag(lm_data, (0xF022, 0xF023, 0xF024)):
+		d = tag_reader.read_tag(format.DATA[tag_type], tag)
 		
 		if tag_type == 0xF022:
 
@@ -218,9 +219,8 @@ def list_tagF024_img(lm_data):
 			print "CharacterID=%d, size: (%d, %d, %d, %d)" % (id, size[0], size[1], size[2], size[3])
 					
 		elif tag_type == 0xF024:
-			d = tag_reader.read_tag(format.DATA[0xF023], tag)
 			
-			idx, flag, unk1, unk2 = d["fill_idx"], d["fill_stype"], d["unk1"], d["unk2"]
+			idx, flag, unk1, unk2 = d["fill_idx"], d["fill_style"], d["unk1"], d["unk2"]
 			
 			fv_list = [
 				d["x0"], d["y0"], d["u0"], d["v0"],
@@ -264,7 +264,6 @@ def list_tagF024_img(lm_data):
 			
 		if tag_type == 0xF023:
 			
-			d = tag_reader.read_tag(format.DATA[0xF023], tag)
 			fv_list = [
 						d["x0"], d["y0"], d["u0"], d["v0"],
 						d["x1"], d["y1"], d["u1"], d["v1"],
@@ -616,7 +615,7 @@ if __name__ == "__main__":
 	parser.add_option("-P", action="store", dest="platform", type="string", default="wii", help="specify the platform where the LM file come from!(wii or pspdx)")
 	
 	(options, args) = parser.parse_args(sys.argv)
-	
+
 	# set up the global format file
 	if options.platform == "wii":
 		import format.lm_format_wii as format

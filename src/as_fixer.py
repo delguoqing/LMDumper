@@ -26,7 +26,7 @@ def split(abc):
 		if action_code < 0x80:
 			record = abc[:1]
 		else:
-			length, = struct.unpack("<H", abc[0x1:0x3]) + 3
+			length = struct.unpack("<H", abc[0x1:0x3])[0] + 3
 			record = abc[:length]
 		
 		off_list.append(off)
@@ -77,6 +77,16 @@ def fix_record(abc, symbol_list):
 			fixed_record += struct.pack("<B", register)
 			fixed_record += param_name + "\x00"
 		fixed += abc[-0x2:]
+	
+	# ActionSetTarget
+	elif action_code == 0x8B:
+		target_name_idx, = struct.unpack("<H", abc[0x3: 0x5])
+		target_name = symbol_list[target_name_idx]
+		print "target_name_idx = %s" % target_name_idx
+		print "target_name = %s" % target_name
+		print
+		fixed = abc[:0x3]
+		fixed += target_name + "\x00"
 		
 	# ActionGoToLabel
 	elif action_code == 0x8C:
@@ -125,7 +135,7 @@ def fix_record(abc, symbol_list):
 		assert False, "New Action Code = 0x%x" % action_code
 	
 	# update record size	
-	fixed = fixed[:0x1] + struct.pack("<H", len(fixed)) + fixed[0x3:]
+	fixed = fixed[:0x1] + struct.pack("<H", len(fixed)-3) + fixed[0x3:]
 	return fixed
 	
 def fix_offset(rec_list, off_list, frec_list, foff_list):
@@ -135,7 +145,7 @@ def fix_offset(rec_list, off_list, frec_list, foff_list):
 	for i, frec in enumerate(frec_list):
 		action_code, = struct.unpack("<B", frec[:0x1])
 			
-		if action_code in (0x8B, 0x8E):
+		if action_code in (0x9B, 0x8E):
 			old_code_size, = struct.unpack("<H", frec[-2:])
 			j = i + 1
 			new_code_size = 0
