@@ -1,7 +1,11 @@
 # -*- coding: gbk -*-
+import sys
+import struct
+import os
 import optparse
 import swf_helper
 import as_fixer
+import tag_reader
 
 def seek_next_tag(data, id=None):
 	assert data, "No Tags Any More"
@@ -34,7 +38,8 @@ def iter_tag(lumen, type_set=None):
 		tag_type, tag_size = d["tag_type"], d["tag_size"]
 		tag_size_bytes = tag_size * 4 + format.HEADER_SIZE
 		
-#		assert tag_type in format.DATA, "Not Analyzed Tag!!! off=%x 0x%04x" % (off, tag_type)
+		assert tag_type in format.DATA, "Not Analyzed Tag!!! off=%x 0x%04x" % \
+			(off, tag_type)
 		
 		if not _type_set or tag_type in _type_set:
 			yield off, tag_type, tag_size_bytes, lumen
@@ -44,7 +49,7 @@ def iter_tag(lumen, type_set=None):
 		off += tag_size_bytes
 		lumen = seek_next_tag(lumen)
 		
-def make_imgs(ctx, cid):
+def make_imgs(ctx):
 	img_idx_2_cid = {}
 	img_tags = []
 	img_info_list = ctx["img_info_list"]
@@ -69,10 +74,11 @@ def make_imgs(ctx, cid):
 		image_data = f.read()
 		f.close()
 		
+		cid = ctx["last_cid"]
+		ctx["last_cid"] += 1
 		tag = swf_helper.make_define_bits_JPEG2_tag(cid, image_data)
 		img_tags.append(tag)
 		img_idx_2_cid[i] = cid
-		cid += 1
 		
 	return img_idx_2_cid, img_tags
 	
@@ -109,19 +115,18 @@ def _make_shape(ctx, d):
 		assert False, "unsupported fill style type. 0x%x" % fill_style
 	ctx["last_cid"] += 1
 		
-	return tag
+	return tag, shape_id
 
 def make_tex_sprite(ctx, d, subds):
-	sprite_id = d["sprite_id"]
+	sprite_id = d["character_id"]
 	sub_tags = []
 
 	for i, subd in enumerate(subds):
-		shape_tag = make_shape(ctx, subd)
-		shape_id, = struct.unpack("<H", shape_tag[0x3:0x5])
+		shape_tag, shape_id = _make_shape(ctx, subd)
 		xmin = min(subd["x0"], subd["x1"], subd["x2"], subd["x3"])
 		ymin = min(subd["y0"], subd["y1"], subd["y2"], subd["y3"])
 		matrix = swf_helper.pack_matrix(None, None, (xmin, ymin))
-		place_obj2_tag = swf_helper.swf_helper.make_place_object2_tag(swf_helper.PLACE_FLAG_HAS_CHARACTER | swf_helper.PLACE_FLAG_HAS_MATRIX, i+1, id=shape_id, matrix=matrix)
+		place_obj2_tag = swf_helper.make_place_object2_tag(swf_helper.PLACE_FLAG_HAS_CHARACTER | swf_helper.PLACE_FLAG_HAS_MATRIX, i+1, id=shape_id, matrix=matrix)
 		sub_tags.append(place_obj2_tag)
 		ctx.setdefault("shape_tags", []).append(shape_tag)
 	show_frame_tag = swf_helper.make_show_frame_tag()
@@ -138,24 +143,26 @@ def make_normal_sprite(ctx, d, subds):
 	as_list = ctx["as_list"]
 	
 	frame_label_cnt = d["frame_label_cnt"]
-	frame_cnt = d["frame_cnt"]
-	sprite_id = d["sprite_id"]
+	frame_cnt = d["0001_cnt"]
+	sprite_id = d["character_id"]
+	print "sprite id = %d" % sprite_id
 	frame_label_dict = {}
 	
 	# build a frame label dict for later ref	
 	for subd in subds[:frame_label_cnt]:
 		assert subd["tag_type"] == 0x002B
 		frame_id = subd["frame_id"]
-		frame_label = symbol_list[subd["frame_label_idx"]]
+		frame_label = symbol_list[subd["name_idx"]]
 		frame_label_dict[frame_id] = frame_label
 		
+	print "frame_label_cnt = %d" % frame_label_cnt
 	# handle the rest, all the frames
 	sub_tags = []
 	depth2matrix = {}
 	depth2color_trans = {}
 	clip_action_cnt = -1
 	frame_cmd_cnt = -1
-	for subd in subds[:frame_label_cnt]:
+	for subd in subds[frame_label_cnt:]:
 	
 		# finish all clip_action tags, pack place object2 tag
 		if clip_action_cnt == 0:
@@ -178,20 +185,26 @@ def make_normal_sprite(ctx, d, subds):
 			
 		if subd["tag_type"] == 0x0001:
 			frame_cmd_cnt = subd["cmd_cnt"]
+			frame_id = subd["frame_id"]
+			frame_label = frame_label_dict.get(frame_id, None)
+			if frame_label is not None:
+				frame_label_tag = swf_helper.make_frame_label_tag(frame_label)
+				sub_tags.append(frame_label_tag)
+			
 		elif subd["tag_type"]	== 0x0005:
 			sub_tags.append(swf_helper.make_remove_object2_tag(
 				subd["depth"] + 1))
 			frame_cmd_cnt -= 1
 		elif subd["tag_type"] == 0x000c:
 			global format
-			bytecodes = as_list[subd["as_idx"]]
+			bytecodes = as_list[subd["as_idx"]]["bytecode"]
 			bytecodes = as_fixer.fix(bytecodes, symbol_list, format)
 			sub_tags.append(swf_helper.make_do_action_tag([bytecodes]))
 			frame_cmd_cnt -= 1
 		elif subd["tag_type"] == 0xf014:
 
 			clip_action_cnt -= 1
-			bytecodes = as_fixer.fix(as_list[subd["as_idx"]], symbol_list, format)
+			bytecodes = as_fixer.fix(as_list[subd["as_idx"]["bytecode"]], symbol_list, format)
 			event_flags = subd["event_flags"]
 			keycode = 0
 			clip_action_records.append(
@@ -209,6 +222,7 @@ def make_normal_sprite(ctx, d, subds):
 			if _flags & 2:
 				flags |= swf_helper.PLACE_FLAG_MOVE
 			id = subd["character_id"]
+			print "sub character id = %d" % id
 			trans_idx = subd["trans_idx"]
 			if trans_idx == -1:
 				pass
@@ -228,7 +242,7 @@ def make_normal_sprite(ctx, d, subds):
 						break
 				mask = (1 << (size * 8 - 1))-1
 				trans_idx &= mask
-				translate = point_list[trans_idx]
+				translate = point_list[trans_idx]["x"], point_list[trans_idx]["y"]
 				scale = rotateskew = None
 				flags |= swf_helper.PLACE_FLAG_HAS_MATRIX
 			if flags & swf_helper.PLACE_FLAG_HAS_MATRIX:
@@ -272,7 +286,7 @@ def make_normal_sprite(ctx, d, subds):
 			if clip_depth > 0:
 				flags |= swf_helper.PLACE_FLAG_HAS_CLIP_DEPTH
 				
-			ratio = d["inst_id"]	# Not sure??
+			ratio = subd["inst_id"]	# Not sure??
 			if ratio >= 0:
 				flags |= swf_helper.PLACE_FLAG_HAS_RATIO
 
@@ -301,41 +315,40 @@ def dump(fname, ID, label, pos, scale, fout, img_path, norecreate):
 	if norecreate and os.path.exists(fout):
 		return
 	
-	ctx = {"tags": [], "img_root": image_root,}
+	ctx = {"tags": [], "img_root": image_root, "tex_sprite": [], "normal_sprite": [], }
 	for off, tag_type, tag_size_bytes, tag in iter_tag(lm_data):
 		d = tag_reader.read_tag(format.DATA[tag_type], tag)
 		if d["tag_type"] == 0xF001:
 			ctx["symbol_list"] = []
 			for symbol_info in d["symbol_list"]:
 				ctx["symbol_list"].append(symbol_info["symbol"])
+			if ctx["symbol_list"][0] is None:
+				ctx["symbol_list"][0] = ""
 		elif d["tag_type"] == 0xF002:
-			
-
+			ctx["color_list"] = d["color_list"]
+		elif d["tag_type"] == 0xF007:
+			ctx["img_info_list"] = d["img_list"]
+		elif d["tag_type"] == 0xF103:
+			ctx["pos_list"] = d["pos_list"]
+		elif d["tag_type"] == 0xF003:
+			ctx["mat_list"] = d["mat_list"]
+		elif d["tag_type"] == 0xF005:
+			ctx["as_list"] = d["as_list"]
+		elif d["tag_type"] == 0xF00C:
+			ctx["max_character_id"] = d["max_character_id"]
+		elif d["tag_type"] == 0xF022:
+			ctx["tex_sprite"].append([d])
+		elif d["tag_type"] in (0xF023, 0xF024):
+			ctx["tex_sprite"][-1].append(d)
+		elif d["tag_type"] == 0x0027:
+			ctx["normal_sprite"].append([d])
+		elif d["tag_type"] in (0x0001, 0x0004, 0x0005, 0x002b, 0xf014, 0x000c):
+			ctx["normal_sprite"][-1].append(d)
 		
-	# init
-	symbol_table = rip_gim.get_symbol_list(lm_data[0x40:])
-	assert symbol_table[0] == ""
-	constant_pool = "".join([str+"\x00" for str in symbol_table])
-	action_constant_pool = struct.pack("<BHH", 0x88, 2+len(constant_pool), 
-		len(symbol_table)) + constant_pool
-	action_record_list = rip_gim.list_tagF005_symbol(lm_data)
-	frame_label_dict = rip_gim.get_frame_label_dict(lm_data)
-#	action_record_list = map(fix_action_record, action_record_list)
-#	print len(action_record_list)
-#	for i in ():
-	for i in xrange(len(action_record_list)):
-		print "fixing action record %d" % i
-		action_record_list[i] = fix_action_record(action_record_list[i], symbol_table)
-#	fix_action_record(action_record_list[2])
+		
+	max_characterID = ctx["max_character_id"]
+	ctx["last_cid"] = max_characterID + 1
 	
-	max_characterID = rip_gim.get_max_characterID(lm_data)
-	
-	# image_dict: {filename : image_data}
-	# image_dict2: {filename: (fill_style_type, shape_width, shape_height)}
-	# shape_dict: {filename: (fill_style_type,)}
-
-	image_dict = get_image_dict(lm_data, image_root)
-	shape_dict, image_dict2 = get_shape_dict(lm_data)
 	# all tags append to this list
 	all_tags = []
 	
@@ -344,54 +357,22 @@ def dump(fname, ID, label, pos, scale, fout, img_path, norecreate):
 	
 	# make SetBackgroundColor tag
 	all_tags.append(swf_helper.make_set_background_color_tag(0xFF, 0xFF, 0xFF))
-	
+
 	# make all DefineBitsJPEG2 tags
-	define_bits_JPEG2_tags = []
-	image_2_id = {}
-	id = max_characterID + 1
-	for k, v in image_dict.iteritems():
-		tag = swf_helper.make_define_bits_JPEG2_tag(id, v)
-		define_bits_JPEG2_tags.append(tag)
-		image_2_id[k] = id
-		id += 1
-	all_tags.extend(define_bits_JPEG2_tags)
+	ctx["img_idx_2_cid"], img_tags = make_imgs(ctx)
+	all_tags.extend(img_tags)
 	
-	# make all DefineShape tags
-	define_shape_tags = []
-	image_2_shape_id = {}
-	shape_2_shape_id = {}
-	id = max_characterID + len(image_dict) + 1
-	for k, v in image_dict.iteritems():
-		img_data = image_dict[k]
-		
-		fill_style_type, shape_width, shape_height = image_dict2[k]
-		tag = swf_helper.make_define_shape3_tag_bitmap_simple(id, 
-			image_2_id[k], shape_width, shape_height, fill_style_type)
-		image_2_shape_id[k] = id
-		id += 1
-		define_shape_tags.append(tag)
-		
-	for k, (color, size) in shape_dict.iteritems():
-		tag = swf_helper.make_define_shape3_tag_solid_simple(id, size[0],
-			size[1], swf_helper.pack_color(color))
-		shape_2_shape_id[k] = id
-		id += 1
-		define_shape_tags.append(tag)
-		
-	all_tags.extend(define_shape_tags)
-
-	# make all texture mc tags
-	define_sprite_tags = get_texture_sprite_tags(lm_data, image_2_shape_id, shape_2_shape_id, image_dict)
-	all_tags.extend(define_sprite_tags)
-
-	# make all general mc tags
-	define_sprite_tags_general = get_define_sprite_tags(lm_data, action_constant_pool, action_record_list)
-	all_tags.extend(define_sprite_tags_general)
+	# make all Texture sprite tags
+	for data in ctx["tex_sprite"]:
+		all_tags.extend(make_tex_sprite(ctx, data[0], data[1:]))
 	
+	# make all normal sprite tags
+	for data in ctx["normal_sprite"]:
+		all_tags.extend(make_normal_sprite(ctx, data[0], data[1:]))	
+			
 	# test basic display
 	tmp_tags = []
 	
-	# INSTANCE ID(ratio) should be enough!
 	id = ID or max_characterID
 	tmp_tags.append(swf_helper.make_place_object2_tag(swf_helper.PLACE_FLAG_HAS_CHARACTER|swf_helper.PLACE_FLAG_HAS_MATRIX|swf_helper.PLACE_FLAG_HAS_NAME|swf_helper.PLACE_FLAG_HAS_RATIO, 1, id=id, matrix=swf_helper.pack_matrix(scale and (scale, scale) or None, None, pos or (0, 0), ),name="main",ratio=0xFFFF))
 
@@ -437,16 +418,14 @@ if __name__ == "__main__":
 	parser.add_option("-s", type="float", dest="scale", help="the scale of the sprite")
 	parser.add_option("-d", action="store_true", dest="dry_run", help="show all character IDs and their frame labels.")
 	parser.add_option("-I", action="store_true", dest="norecreate", help="Ignore a file when the corresponding swf is already exists!")
-	parser.add_option("-P", action="store", type="int", dest="platform", default=0, help="specify platform: %d for wii, %d for pspdx, default:%d" % (PLATFORM_WII, PLATFORM_PSPDX, 0))
+	parser.add_option("-P", action="store", type="string", dest="platform", default="wii", help="specify platform: wii or pspdx, default: wii")
 
 	(options, args) = parser.parse_args(sys.argv)
 	
-	sys.path.append("../CLM")
-	
-	if options.platform == PLATFORM_WII:
-		import rip_gim_wii as rip_gim
+	if options.platform == "wii":
+		import format.lm_format_wii as format
 	elif options.platform == PLATFORM_PSPDX:
-		import rip_gim_pspdx as rip_gim
+		import format.lm_format_pspdx as format
 	else:
 		print "Unsupported platform!"
 		os.exit()
@@ -472,4 +451,4 @@ if __name__ == "__main__":
 				print "labels of %d" % id
 				print dic.keys()		
 		else:
-			test(filename, options.characterID, options.label, options.pos, options.scale, options.fout, options.texture_root, options.norecreate)
+			dump(filename, options.characterID, options.label, options.pos, options.scale, options.fout, options.texture_root, options.norecreate)

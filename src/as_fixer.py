@@ -33,6 +33,7 @@ def split(abc):
 		rec_list.append(record)
 		
 		off += len(record)
+		abc = abc[len(record):]
 		
 	return rec_list, off_list
 	
@@ -88,7 +89,7 @@ def fix_record(abc, symbol_list):
 	elif action_code == 0x96:
 		raw_items = abc[0x3:]
 		fixed = abc[:0x3]
-		while abc:
+		while raw_items:
 			push_type, = struct.unpack("<B", raw_items[0x0:0x1])
 			if push_type in (0x4, 0x5, 0x8):
 				bytes = raw_items[0x1:0x2]
@@ -164,6 +165,9 @@ def fix_offset(rec_list, off_list, frec_list, foff_list):
 					j -= 1
 			
 			fixed = frec[:-2] + struct.pack("<h", new_branch_off)
+			
+		else:
+			fixed = frec
 		
 		fixed2_list.append(fixed)
 
