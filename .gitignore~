@@ -169,4 +169,4 @@ pip-log.txt
 *.tag0004
 *.tagf001
 tmp/
-img/
+png/

@@ -10,6 +10,12 @@ PLACE_FLAG_HAS_MATRIX = 0x4
 PLACE_FLAG_HAS_CHARACTER = 0x2
 PLACE_FLAG_MOVE = 0x1
 
+PLACE_FLAG2_HAS_IMAGE = 0x10
+PLACE_FLAG2_HAS_CLASS_NAME = 0x8
+PLACE_FLAG2_HAS_CACHE_AS_BITMAP = 0x4
+PLACE_FLAG2_HAS_BLEND_MODE = 0x2
+PLACE_FLAG2_HAS_FILTER_LIST = 0x1
+
 SHAPE_FLAG_NON_EDGE = 0x80	
 SHAPE_FLAG_STATE_NEW_STYLES = 0x40
 SHAPE_FLAG_STATE_LINE_STYLE = 0x20
@@ -421,7 +427,6 @@ def make_file_attributes_tag():
 	ret += struct.pack("<I", 0x0)
 	return ret
 	
-# WARNING: to be completed
 def make_place_object2_tag(flags, depth, id=None, matrix=None, 
 	color_trans=None, ratio=None, name=None, clip_depth=None, 
 	clip_actions=None):
@@ -443,6 +448,37 @@ def make_place_object2_tag(flags, depth, id=None, matrix=None,
 	if flags & PLACE_FLAG_HAS_CLIP_ACTIONS:
 		data += clip_actions
 	return make_record_header(26, len(data)) + data
+	
+def make_place_object3_tag(flags, flags2, depth, class_name=None, id=None, matrix=None, color_trans=None, ratio=None, name=None, clip_depth=None, surface_filter_list=None, blend_mode=None, bitmap_cache=None, clip_actions=None):
+	data = ""
+	data += pack_ubyte(flags)
+	data += pack_ubyte(flags2)
+	data += pack_uhalf(depth)
+
+	if flags2 & PLACE_FLAG2_HAS_CLASS_NAME:
+		data += pack_string(class_name)
+	if flags & PLACE_FLAG_HAS_CHARACTER:
+		data += pack_uhalf(id)
+	if flags & PLACE_FLAG_HAS_MATRIX:
+		data += matrix		
+	if flags & PLACE_FLAG_HAS_COLOR_TRANSFORM:
+		data += color_trans		
+	if flags & PLACE_FLAG_HAS_RATIO:
+		data += pack_uhalf(ratio)
+	if flags & PLACE_FLAG_HAS_NAME:
+		data += pack_string(name)
+	if flags & PLACE_FLAG_HAS_CLIP_DEPTH:
+		data += pack_uhalf(clip_depth)
+	if flags2 & PLACE_FLAG2_HAS_FILTER_LIST:
+		data += surface_filter_list
+	if flags2 & PLACE_FLAG2_HAS_BLEND_MODE:
+		data += pack_ubyte(blend_mode)
+	if flags2 & PLACE_FLAG2_HAS_CACHE_AS_BITMAP:
+		data += pack_ubyte(bitmap_cache)
+	if flags & PLACE_FLAG_HAS_CLIP_ACTIONS:
+		data += clip_actions
+	
+	return make_record_header(70, len(data)) + data
 	
 def make_end_tag():
 	return make_record_header(0, 0)

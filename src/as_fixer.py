@@ -44,7 +44,7 @@ def fix_record(abc, symbol_list):
 		
 	# ActionDefineFunction
 	if action_code == 0x9B:
-		func_name_idx, num_params = struct.unpack("<H", abc[0x3:0x7])
+		func_name_idx, num_params = struct.unpack("<HH", abc[0x3:0x7])
 		func_name = symbol_list[func_name_idx]
 		param_name_idx_list = struct.unpack("<" + "H" * num_params, abc[0x7: 0x7 + num_params * 2])
 		
@@ -66,7 +66,7 @@ def fix_record(abc, symbol_list):
 		num_params, = struct.unpack("<H", abc[0x5:0x7])
 		for i in xrange(num_params):
 			register, param_name_idx = struct.unpack("<BH", 
-				record[0xa+i*0x3: 0xa+i*0x3+0x3])
+				abc[0xa+i*0x3: 0xa+i*0x3+0x3])
 			param_name = symbol_list[param_name_idx]
 			register_params.append((register, param_name))
 		
@@ -74,8 +74,8 @@ def fix_record(abc, symbol_list):
 		fixed += func_name + "\x00"
 		fixed += abc[0x5:0xa]
 		for register, param_name in register_params:
-			fixed_record += struct.pack("<B", register)
-			fixed_record += param_name + "\x00"
+			fixed += struct.pack("<B", register)
+			fixed += param_name + "\x00"
 		fixed += abc[-0x2:]
 	
 	# ActionSetTarget
@@ -130,7 +130,7 @@ def fix_record(abc, symbol_list):
 			raw_items = raw_items[off + 1:]
 
 	# Do Nothing
-	elif action_code in (0x87, 0x9F, 0x83, 0x81, 0x99, 0x9D):
+	elif action_code in (0x87, 0x9F, 0x83, 0x81, 0x9A, 0x9D, 0x99):
 		fixed = abc
 		
 	# Not checked by me yet!

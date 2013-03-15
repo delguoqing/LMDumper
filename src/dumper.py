@@ -113,7 +113,7 @@ def _make_shape(ctx, d):
 	if fill_style == 0x0:
 		c = color_list[fill_idx]
 		color = swf_helper.pack_color((c["R"], c["G"], c["B"], c["A"]))
-		tag = make_define_shape3_tag_solid_simple(shape_id, width, height, color)
+		tag = swf_helper.make_define_shape3_tag_solid_simple(shape_id, width, height, color)
 	elif fill_style in (0x40, 0x41):
 		bitmap_id = img_idx_2_cid[fill_idx]
 		tag = swf_helper.make_define_shape3_tag_bitmap_simple(shape_id, bitmap_id, width, height, fill_style)
@@ -179,8 +179,11 @@ def make_normal_sprite(ctx, d, subds):
 			else:
 				clip_actions = None
 				
-			ptag = swf_helper.make_place_object2_tag(flags, depth + 1, id, 
-				name=name, matrix=matrix, color_trans=color_trans, clip_actions=clip_actions, ratio=ratio, clip_depth=clip_depth)
+			ptag = swf_helper.make_place_object3_tag(flags, flags2, depth + 1, 
+			id=id, name=name, matrix=matrix, color_trans=color_trans, 
+			clip_actions=clip_actions, ratio=ratio, clip_depth=clip_depth,
+			blend_mode=blend_mode)
+			
 			sub_tags.append(ptag)
 			
 			clip_action_cnt = -1
@@ -256,6 +259,14 @@ def make_normal_sprite(ctx, d, subds):
 					translate)
 			else:
 				matrix = None
+			
+			flags2 = 0
+			if subd["blend_mode"] > 1:
+				flags2 |= swf_helper.PLACE_FLAG2_HAS_BLEND_MODE
+				blend_mode = subd["blend_mode"]
+			else:
+				blend_mode = None
+				
 			depth = subd["depth"]
 			name_idx = subd["name_idx"]
 			name = symbol_list[name_idx]
@@ -436,7 +447,7 @@ if __name__ == "__main__":
 	
 	if options.platform == "wii":
 		import format.lm_format_wii as format
-	elif options.platform == PLATFORM_PSPDX:
+	elif options.platform == "pspdx":
 		import format.lm_format_pspdx as format
 	else:
 		print "Unsupported platform!"
