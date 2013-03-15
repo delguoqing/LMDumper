@@ -210,8 +210,8 @@ def make_normal_sprite(ctx, d, subds):
 		elif subd["tag_type"] == 0xf014:
 
 			clip_action_cnt -= 1
-			bytecodes = as_fixer.fix(as_list[subd["as_idx"]["bytecode"]], symbol_list, format)
-			event_flags = subd["event_flags"]
+			bytecodes = as_fixer.fix(as_list[subd["as_idx"]]["bytecode"], symbol_list, format)
+			event_flags = subd["clip_event_flags"]
 			keycode = 0
 			clip_action_records.append(
 				swf_helper.pack_clip_action_record(event_flags, [bytecodes], keycode))
