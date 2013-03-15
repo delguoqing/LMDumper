@@ -121,6 +121,9 @@ def fix_record(abc, symbol_list):
 			elif push_type == 0x2:
 				bytes = ""
 				off = 0x0
+			elif push_type == 0x3:	#?? undefined
+				bytes = ""
+				off = 0x0
 			else:
 				assert False, "not supported push type %x" % push_type
 			fixed += raw_items[0x0:0x1] + bytes
