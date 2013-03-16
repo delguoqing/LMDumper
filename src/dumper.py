@@ -169,28 +169,6 @@ def make_normal_sprite(ctx, d, subds):
 	clip_action_cnt = -1
 	frame_cmd_cnt = -1
 	for subd in subds[frame_label_cnt:]:
-	
-		# finish all clip_action tags, pack place object2 tag
-		if clip_action_cnt == 0:
-			if len(clip_action_records) > 0:
-				flags |= swf_helper.PLACE_FLAG_HAS_CLIP_ACTIONS
-				clip_actions = \
-					swf_helper.pack_clip_actions(clip_action_records)
-			else:
-				clip_actions = None
-				
-			ptag = swf_helper.make_place_object3_tag(flags, flags2, depth + 1, 
-			id=id, name=name, matrix=matrix, color_trans=color_trans, 
-			clip_actions=clip_actions, ratio=ratio, clip_depth=clip_depth,
-			blend_mode=blend_mode)
-			
-			sub_tags.append(ptag)
-			
-			clip_action_cnt = -1
-					
-		if frame_cmd_cnt == 0:
-			sub_tags.append(swf_helper.make_show_frame_tag())
-			frame_cmd_cnt = -1
 			
 		if subd["tag_type"] == 0x0001:
 			frame_cmd_cnt = subd["cmd_cnt"]
@@ -223,6 +201,10 @@ def make_normal_sprite(ctx, d, subds):
 			assert False, "unhandled tag! %d" % subd["tag_type"]
 
 		else:	# handle tag0004
+		
+			# check unknown fields
+			assert subd["unk1"] == 0, "unk1 is not zero!"
+			
 			frame_cmd_cnt -= 1
 			_flags = subd["flags"]
 			flags = 0
@@ -317,7 +299,29 @@ def make_normal_sprite(ctx, d, subds):
 			
 			clip_action_cnt = subd["clip_action_cnt"]
 			clip_action_records = []
-
+	
+		# finish all clip_action tags, pack place object2 tag
+		if clip_action_cnt == 0:
+			if len(clip_action_records) > 0:
+				flags |= swf_helper.PLACE_FLAG_HAS_CLIP_ACTIONS
+				clip_actions = \
+					swf_helper.pack_clip_actions(clip_action_records)
+			else:
+				clip_actions = None
+				
+			ptag = swf_helper.make_place_object3_tag(flags, flags2, depth + 1, 
+			id=id, name=name, matrix=matrix, color_trans=color_trans, 
+			clip_actions=clip_actions, ratio=ratio, clip_depth=clip_depth,
+			blend_mode=blend_mode)
+			
+			sub_tags.append(ptag)
+			
+			clip_action_cnt = -1
+					
+		if frame_cmd_cnt == 0:
+			sub_tags.append(swf_helper.make_show_frame_tag())
+			frame_cmd_cnt = -1			
+	
 	sub_tags.append(swf_helper.make_end_tag())	
 	return swf_helper.make_define_sprite_tag(sprite_id, frame_cnt, sub_tags)
 	
@@ -350,8 +354,26 @@ def dump(fname, ID, label, pos, scale, fout, img_path, norecreate):
 			ctx["pos_list"] = d["pos_list"]
 		elif d["tag_type"] == 0xF003:
 			ctx["mat_list"] = d["mat_list"]
+		elif d["tag_type"] == 0xF004:
+			ctx["box_list"] = d["box_list"]
 		elif d["tag_type"] == 0xF005:
 			ctx["as_list"] = d["as_list"]
+		elif d["tag_type"] == 0xF008:
+			assert d["unk_cnt"] == 0, "tag F008 is not empty!"
+		elif d["tag_type"] == 0xF009:
+			assert d["unk"] == 0, "tag F009 is not empty!"
+		elif d["tag_type"] == 0xF00A:
+			assert d["unk_cnt"] == 0, "tag F00A is not empty!"
+		elif d["tag_type"] == 0xF00B:
+			assert d["unk"] == 1, "tag F00B is not consistent!"
+		elif d["tag_type"] == 0xF00D:
+			assert d["const0_0"] == 0
+			assert d["const1_0"] == 0
+			assert d["const2_0"] == 0						
+		elif d["tag_type"] == 0xF105:
+			ctx["last_sprite"] = []
+		elif d["tag_type"] == 0x000A:
+			assert d["unk_cnt"] == 0, "tag 000A is not empty!"			
 		elif d["tag_type"] == 0xF00C:
 			ctx["max_character_id"] = d["max_character_id"]
 		elif d["tag_type"] == 0xF022:
@@ -360,8 +382,13 @@ def dump(fname, ID, label, pos, scale, fout, img_path, norecreate):
 			ctx["tex_sprite"][-1].append(d)
 		elif d["tag_type"] == 0x0027:
 			ctx["normal_sprite"].append([d])
+			ctx["last_sprite"] = ctx["normal_sprite"][-1]
 		elif d["tag_type"] in (0x0001, 0x0004, 0x0005, 0x002b, 0xf014, 0x000c):
-			ctx["normal_sprite"][-1].append(d)
+			ctx["last_sprite"].append(d)
+		elif d["tag_type"] == 0xFF00:
+			pass			
+		else:
+			assert False, "unhandled tag! Type = 0x%04x" % d["tag_type"]
 		
 		
 	max_characterID = ctx["max_character_id"]
@@ -379,7 +406,16 @@ def dump(fname, ID, label, pos, scale, fout, img_path, norecreate):
 	# make all DefineBitsJPEG2 tags
 	ctx["img_idx_2_cid"], img_tags = make_imgs(ctx)
 	all_tags.extend(img_tags)
-	
+
+	# export all images(For UDK)
+	img_info_list = ctx["img_info_list"]
+	exp_id_name_list = []
+	for i in xrange(len(img_tags)):
+		img_idx = img_info_list[i]["img_idx"]
+		exp_id_name_list.append((ctx["img_idx_2_cid"][img_idx], "noname_%d" % img_idx))
+	all_tags.append(swf_helper.make_export_assets_tag(exp_id_name_list))
+		
+		
 	# make all Texture sprite tags
 	tex_sprite_tags = []
 	for data in ctx["tex_sprite"]:

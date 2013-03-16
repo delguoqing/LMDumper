@@ -494,6 +494,16 @@ def make_remove_object2_tag(id):
 	ret += pack_uhalf(id)
 	return ret
 	
+def make_export_assets_tag(id_name_list):
+	data = ""
+	count = len(id_name_list)
+	data += pack_uhalf(count)
+	for id, name in id_name_list:
+		data += pack_uhalf(id)
+		data += pack_string(name)
+	
+	return make_record_header(56, len(data)) + data
+		
 def get_tag_header_size(tag):
 	tag_code_and_length, = struct.unpack("<H", tag[:0x2])
 if __name__ == "__main__":

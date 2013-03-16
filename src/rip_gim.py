@@ -260,7 +260,7 @@ def list_tagF024_img(lm_data):
 				print "\t\t",fv_list[8:12]
 				print "\t\t",fv_list[12:]			
 				
-			print "unk = 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x" % (unk1, unk2, unk3, unk4, unk5, unk6)
+			print "unk = 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, 0x%x, fill_idx=%d" % (unk1, unk2, unk3, unk4, unk5, unk6, idx)
 			
 		if tag_type == 0xF023:
 			
