@@ -60,7 +60,6 @@ def fix_record(abc, symbol_list):
 
 		func_name_idx, = struct.unpack("<H", abc[0x3:0x5])
 		func_name = symbol_list[func_name_idx]
-		func_name_len = len(func_name)
 		
 		register_params = []
 		num_params, = struct.unpack("<H", abc[0x5:0x7])
@@ -78,6 +77,8 @@ def fix_record(abc, symbol_list):
 			fixed += param_name + "\x00"
 		fixed += abc[-0x2:]
 	
+		print "ActionDefineFunction2 processed! original codeSize = %d, tot_size=%d, %d" % (struct.unpack("<H", fixed[-0x2:]) + (len(abc), len(fixed)))
+		
 	# ActionSetTarget
 	elif action_code == 0x8B:
 		target_name_idx, = struct.unpack("<H", abc[0x3: 0x5])
@@ -158,7 +159,9 @@ def fix_offset(rec_list, off_list, frec_list, foff_list):
 				j += 1
 			
 			fixed = frec[:-2] + struct.pack("<H", new_code_size)
-			
+
+			if action_code == 0x8E:
+				print "=>ActionDefineFunction2 Processed, new codeSize=%d" % struct.unpack("<H", fixed[-2:])
 		elif action_code in (0x99, 0x9D):
 			old_branch_off, = struct.unpack("<h", frec[-2:])
 			if old_branch_off > 0:

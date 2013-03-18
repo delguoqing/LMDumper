@@ -422,7 +422,9 @@ def dump(fname, ID, label, pos, scale, fout, img_path, norecreate):
 		tex_sprite_tags.extend(make_tex_sprite(ctx, data[0], data[1:]))
 
 	# make all DefineShape tags
-	all_tags.extend(ctx["shape_tags"])
+	if ctx.get("shape_tags"):
+		all_tags.extend(ctx["shape_tags"])
+		
 	all_tags.extend(tex_sprite_tags)
 		
 	# make all normal sprite tags
