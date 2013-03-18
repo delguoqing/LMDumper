@@ -168,5 +168,6 @@ pip-log.txt
 *.tag
 *.tag0004
 *.tagf001
+*.bat
 tmp/
 img/
