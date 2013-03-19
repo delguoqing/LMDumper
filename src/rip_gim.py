@@ -500,7 +500,7 @@ def list_tagF009_symbol(lm_data):
 def list_tagF00A_symbol(lm_data):
 	for off, tag_type, tag_size_bytes, tag in iter_tag(lm_data, (0xF00A,)):
 		res = tag_reader.read_tag(format.DATA[0xF00A], tag)
-		return		
+		return res
 	assert False, "Missing tag F00A"
 
 def list_tag000A_symbol(lm_data):
@@ -605,6 +605,11 @@ def list_tag0025_symbol(lm_data):
 		if tag0025_cnt == 0:
 			break
 	
+def list_tag000B_symbol(lm_data):
+	for off, tag_type, tag_size_bytes, tag in iter_tag(lm_data, (0x000B,)):
+		d = tag_reader.read_tag(format.DATA[tag_type], tag)
+		print d["character_id"]
+		
 if __name__ == "__main__":
 	
 	parser = optparse.OptionParser()
@@ -708,7 +713,10 @@ if __name__ == "__main__":
 		elif options.tag_id == 0xF009:
 			list_tagF009_symbol(data)			
 		elif options.tag_id == 0xF00A:
-			list_tagF00A_symbol(data)				
+			d = list_tagF00A_symbol(data)
+			print "Label Text:"
+			for unk_info in d["unk_list"]:
+				print "0x%x\t%d %d %d text=0x%x" % (unk_info["idx"], unk_info["unk2"], unk_info["unk4"], unk_info["unk5"], unk_info["text_idx"])
 		elif options.tag_id == 0xF00B:
 			list_tagF00B_symbol(data)					
 		elif options.tag_id == 0xF00C:
@@ -724,11 +732,25 @@ if __name__ == "__main__":
 			
 		elif options.tag_id == 0xF00D:
 			res = list_tagF00D_symbol(data)
-			print "\tF022:%d, 0027:%d" % (res["f022_cnt"], res["0027_cnt"])			
+			print "\tF022:%d, 0027:%d, 000B:%d, 0025:%d, 0007:%d" % (res["f022_cnt"], res["0027_cnt"], res["000b_cnt"], res["0025_cnt"], res["0007_cnt"])
+			
+			assert res["const0_0"] == 0
+			assert res["const1_0"] == 0
+			assert res["const2_0"] == 0
 		elif options.tag_id == 0x0025:
 			res = list_tag0025_symbol(data)
 		elif options.tag_id == 0xF024:
 			res = list_tagF024_img(data)
+		elif options.tag_id == 0x000B:
+			res = list_tag000B_symbol(data)			
 		elif options.tag_id == 0x000A:
 			res = list_tag000A_symbol(data)
-			print "font count = %d" % res["unk_cnt"]
+			symbol_list = get_symbol_list(data[0x40:])
+			print "Font:(total=%d)" % res["font_cnt"]
+			for i, font_info in enumerate(res["font_list"]):
+				print "0x%x\t name=%s, idx=%d, unk=%d, %d, %d" % (i, 
+					symbol_list[font_info["name_idx"]], font_info["idx"], 
+					font_info["unk1"], font_info["unk3"], font_info["unk4"])
+				assert font_info["idx"] == i
+				
+			

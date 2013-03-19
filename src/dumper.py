@@ -363,7 +363,7 @@ def dump(fname, ID, label, pos, scale, fout, img_path, norecreate):
 		elif d["tag_type"] == 0xF009:
 			assert d["unk"] == 0, "tag F009 is not empty!"
 		elif d["tag_type"] == 0xF00A:
-			assert d["unk_cnt"] == 0, "tag F00A is not empty!"
+			print "Ignore text!"
 		elif d["tag_type"] == 0xF00B:
 			assert d["unk"] == 1, "tag F00B is not consistent!"
 		elif d["tag_type"] == 0xF00D:
@@ -373,7 +373,7 @@ def dump(fname, ID, label, pos, scale, fout, img_path, norecreate):
 		elif d["tag_type"] == 0xF105:
 			ctx["last_sprite"] = []
 		elif d["tag_type"] == 0x000A:
-			assert d["unk_cnt"] == 0, "tag 000A is not empty!"			
+			print "Font Ignored!"
 		elif d["tag_type"] == 0xF00C:
 			ctx["max_character_id"] = d["max_character_id"]
 		elif d["tag_type"] == 0xF022:
@@ -385,6 +385,18 @@ def dump(fname, ID, label, pos, scale, fout, img_path, norecreate):
 			ctx["last_sprite"] = ctx["normal_sprite"][-1]
 		elif d["tag_type"] in (0x0001, 0x0004, 0x0005, 0x002b, 0xf014, 0x000c):
 			ctx["last_sprite"].append(d)
+		elif d["tag_type"] == 0x0007:
+			pass
+		elif d["tag_type"] == 0xf018:
+			pass
+		elif d["tag_type"] == 0xf019:
+			pass		
+		elif d["tag_type"] == 0x000B:	# static text
+			pass				
+		elif d["tag_type"] == 0xF00E:	# static text line
+			pass					
+		elif d["tag_type"] == 0x0025:
+			pass									
 		elif d["tag_type"] == 0xFF00:
 			pass			
 		else:

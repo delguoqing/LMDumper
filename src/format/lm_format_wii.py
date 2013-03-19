@@ -122,9 +122,9 @@ DATA = {
 		("unk_cnt", 0x4, ">I"),
 		("unk_list", "g['unk_cnt']", "list",
 			(
-				("unk1", 0x4, ">I"),
+				("idx", 0x4, ">I"),
 				("unk2", 0x4, ">I"),
-				("unk3", 0x4, ">I"),
+				("text_idx", 0x4, ">I"),
 				("unk4", 0x4, ">I"),
 				("unk5", 0x4, ">I"),
 			)
@@ -280,15 +280,16 @@ DATA = {
 		("cmd_cnt", 0x4, ">I"),
 	),
 
+	# DefineFont
 	0x000A: (
 		("tag_type", 0x4, ">I"),
 		("tag_size", 0x4, ">I"),
-		("unk_cnt", 0x4, ">I"),
-		("unk_list", "g['unk_cnt']", "list",
+		("font_cnt", 0x4, ">I"),
+		("font_list", "g['font_cnt']", "list",
 			(
-				("unk0", 0x4, ">I"),
+				("idx", 0x4, ">I"),
 				("unk1", 0x4, ">I"),
-				("unk2", 0x4, ">I"),
+				("name_idx", 0x4, ">I"),	# refer to tagF001
 				("unk3", 0x4, ">I"),
 				("unk4", 0x4, ">I"),
 			)
@@ -400,7 +401,7 @@ DATA = {
 	0xF00E: (
 		("tag_type", 0x4, ">I"),
 		("tag_size", 0x4, ">I"),
-		("f00e_idx", 0x4, ">I"),
+		("ori_text_idx", 0x4, ">I"),	# refer to 0xF00A
 		("font_id", 0x4, ">I"),
 		("height", 0x4, ">f"),
 		("xoffset", 0x4, ">f"),
@@ -419,7 +420,7 @@ DATA = {
 		("unk3", 0x4, ">I"),
 		("unk4", 0x4, ">I"),										
 	),
-																
+				
 	0xFF00: (
 		("tag_type", 0x4, ">I"),
 		("tag_size", 0x4, ">I"),
