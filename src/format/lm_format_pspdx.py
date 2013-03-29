@@ -315,8 +315,8 @@ DATA = {
 		("tag_type", 0x2, "<H"),
 		("tag_size", 0x2, "<H"),
 		("unk0", 0x0, "<I"),
-		("depth", 0x2, "<H"),
 		("unk1", 0x2, "<H"),
+		("depth", 0x2, "<H"),
 	),
 
 	0xF014: (
@@ -324,6 +324,7 @@ DATA = {
 		("tag_size", 0x2, "<H"),
 		("as_idx", 0x2, "<H"),
 		("clip_event_flags", 0x2, "<H"),
+		("unk0", 0x4, "<I"),
 	),
 
 	# Define Button2

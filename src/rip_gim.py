@@ -368,6 +368,8 @@ def list_tag0004_symbol(lm_data):
 		elif tag_type == 0xf014:
 			d = tag_reader.read_tag(format.DATA[0xF014], data)		
 			print ">>>>>>>>>Do ClipAction: %d" % d["as_idx"]
+			
+			assert not d["unk0"]
 		elif tag_type == 0xf105:
 			d = tag_reader.read_tag(format.DATA[0xF105], data)
 			print ">>>>>>>>>KeyFrame: v=%d" % d["frame_id"]
@@ -393,8 +395,10 @@ def list_tag0004_symbol(lm_data):
 			flags, blend_mode, = res["flags"], res["blend_mode"]
 			depth, clip_depth, ratio, unk5 = res["depth"], res["clip_depth"], res["ratio"], res["unk5"]
 			trans_idx, color_mul_idx ,color_add_idx, unk6, clip_action_cnt = res["trans_idx"], res["color_mul_idx"], res["color_add_idx"], res["unk6"], res["clip_action_cnt"]
+			unk7 = res["unk7"]
 
-			blend_mode_name = blend_mode_2_name[blend_mode]
+#			blend_mode_name = blend_mode_2_name[blend_mode]
+			blend_mode_name = str(blend_mode)
 			if trans_idx == -1:
 				translate = scale = rotateskew = "null"
 			elif trans_idx >= 0:
@@ -446,7 +450,7 @@ def list_tag0004_symbol(lm_data):
 				(character_id, depth, translate, scale, rotateskew, inst_id,
 					flags_str, color_mul_str, color_add_str, clip_action_cnt, name, ratio, blend_mode_name, clip_depth)
 
-#			assert unk1 == 0 and unk5 == 0 and unk6 == 0
+			assert (not unk1) and (not unk5) and (not unk6) and (not unk7)
 			
 		if tag_type == 0xFF00:
 			break
