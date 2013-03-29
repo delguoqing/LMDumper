@@ -383,6 +383,10 @@ class TPL:
 		else:
 			data = self.data
 		
+		if len(data) == 0:
+			print "Empty file: %s" % self.file
+			return
+			
 		header = self.TPLHeader()
 		textures = []
 		pos = 0
