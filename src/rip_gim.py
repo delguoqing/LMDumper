@@ -357,15 +357,21 @@ def list_tag0004_symbol(lm_data):
 
 	for off, tag_type, tag_size_bytes, data in iter_tag(lm_data):
 		d = tag_reader.read_tag(format.DATA[tag_type], data)
+		
+		# Movieclip Tag
 		if tag_type == 0x0027:
 			d = tag_reader.read_tag(format.DATA[0x0027], data)
 			id = d["character_id"]
 			max_depth = d["max_depth"]
 			print "===================== offset=0x%x, CharacterID=%d, max_depth=%d %s" % (off, id, max_depth, id in ref_table and "Ref As %s" % (",".join(list(ref_table[id]))) or "")
+			
+		# Frame Label Tag
 		elif tag_type == 0x0001:
 			d = tag_reader.read_tag(format.DATA[0x0001], data)
 			print "Frame %d, cmd_cnt=%d" % (d["frame_id"], d["cmd_cnt"])
-		elif tag_type == 0xf014:
+			
+		# Clip Action Tag
+		elif tag_type == 0xF014:
 			d = tag_reader.read_tag(format.DATA[0xF014], data)
 			print ">>>>>>>>>Do ClipAction: %d" % d["as_idx"]
 			
@@ -379,22 +385,38 @@ def list_tag0004_symbol(lm_data):
 				_flag_cnt += 1
 			assert _flag_cnt == 1, "`clip_event_flags` corresponds to multiple events!"
 			
-		elif tag_type == 0xf105:
+		# Key Frame Tag
+		elif tag_type == 0xF105:
 			d = tag_reader.read_tag(format.DATA[0xF105], data)
 			print ">>>>>>>>>KeyFrame: v=%d" % d["frame_id"]
-		elif tag_type == 0x000c:
+			
+		# Do Action Tag
+		elif tag_type == 0x000C:
 			print ">>>>>>>>>Do Action %d" % d["as_idx"]
+			
+			# Check if 'unk0' is ever used!
+			assert not d["unk0"], "`unk0` is used!"
+			
+		# Remove Object Tag
 		elif tag_type == 0x0005:
 			d = tag_reader.read_tag(format.DATA[0x0005], data)
 			print ">>>>>>>>>RemoveObject at depth%d" % d["depth"]
 
-			assert d["unk1"] == 0
-			assert d["unk0"] == 0 or d["unk0"] is None
-			assert d["depth"] < max_depth
+			# Check if 'unk0' and 'unk1' is ever used
+			assert not d["unk0"], "`unk0` is used!"
+			assert not d["unk1"], "`unk1` is used!"
+			# Check if 'depth' is valid
+			assert 0 <= d["depth"] < max_depth, "`depth` is invalid!"
+			
+		# Frame Label Tag
 		elif tag_type == 0x002b:
 			d = tag_reader.read_tag(format.DATA[0x002B], data)
 			print ">>>>>>>>>FrameLabel: %s@%d" % (symbol_list[d["name_idx"]], d["frame_id"])
+			
+			# Check if 'unk0' is ever used!
 			assert d["unk0"] == 0
+			
+		# Place Object Tag
 		if tag_type == 0x0004:
 			res = tag_reader.read_tag(format.DATA[0x0004], data)
 			
