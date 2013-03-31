@@ -366,10 +366,19 @@ def list_tag0004_symbol(lm_data):
 			d = tag_reader.read_tag(format.DATA[0x0001], data)
 			print "Frame %d, cmd_cnt=%d" % (d["frame_id"], d["cmd_cnt"])
 		elif tag_type == 0xf014:
-			d = tag_reader.read_tag(format.DATA[0xF014], data)		
+			d = tag_reader.read_tag(format.DATA[0xF014], data)
 			print ">>>>>>>>>Do ClipAction: %d" % d["as_idx"]
 			
-			assert not d["unk0"]
+			# Check if `key_code` is ever used
+			assert not d["key_code"], "`key_code` is used!"
+			# Check if `clip_event_flags` corresponds to multiple events
+			_flag_cnt = 0
+			clip_event_flags = d["clip_event_flags"]
+			while clip_event_flags:
+				clip_event_flags = (clip_event_flags - 1) & clip_event_flags
+				_flag_cnt += 1
+			assert _flag_cnt == 1, "`clip_event_flags` corresponds to multiple events!"
+			
 		elif tag_type == 0xf105:
 			d = tag_reader.read_tag(format.DATA[0xF105], data)
 			print ">>>>>>>>>KeyFrame: v=%d" % d["frame_id"]
