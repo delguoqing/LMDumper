@@ -171,3 +171,5 @@ pip-log.txt
 *.bat
 tmp/
 img/
+*.swf
+*.fla
