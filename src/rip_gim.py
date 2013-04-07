@@ -433,24 +433,20 @@ def list_tag0004_symbol(lm_data):
 			if trans_idx == -1:
 				translate = scale = rotateskew = "null"
 			elif trans_idx >= 0:
-				translate = "(%.1f, %.1f)" % (matrix_list[trans_idx][4],
+				translate = "(%.1f, %.1f)" % (matrix_list[trans_idx][0],
+					matrix_list[trans_idx][1])
+				scale = "(%.1f, %.1f)" % (matrix_list[trans_idx][4],
 					matrix_list[trans_idx][5])
-				scale = "(%.1f, %.1f)" % (matrix_list[trans_idx][0],
-					matrix_list[trans_idx][3])
 				rotateskew = "(%.1f, %.1f)" % (
-					matrix_list[trans_idx][1], 
-					matrix_list[trans_idx][2])
-			else:	# tricky!!!, find the first 0x8
-					# TODO: need to fix this!
-				trans_idx = trans_idx & 0xFFFFFFFF
-				bit_cnt = 28
-				while True:
-					old_trans_idx = trans_idx
-					trans_idx ^= (0xF << bit_cnt)
-					if (old_trans_idx & (0xF << bit_cnt)) == (0x8 << bit_cnt):
-						trans_idx = (old_trans_idx ^ (0x8 << bit_cnt))
+					matrix_list[trans_idx][2], 
+					matrix_list[trans_idx][3])
+			else:
+				size = 0
+				for vname, size, fmt in format.DATA[0x0004]:
+					if vname == "trans_idx":
 						break
-					bit_cnt -= 4
+				mask = (1 << (size * 8 - 1))-1
+				trans_idx &= mask
 				translate = "(%.1f, %.1f)" % xy_list[trans_idx]
 				scale = rotateskew = ""
 			if name_idx >= 0:
