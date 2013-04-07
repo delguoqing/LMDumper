@@ -311,7 +311,7 @@ def make_normal_sprite(ctx, d, subds):
 				
 			ptag = swf_helper.make_place_object3_tag(flags, flags2, depth + 1, 
 			id=id, name=name, matrix=matrix, color_trans=color_trans, 
-			clip_actions=clip_actions, ratio=ratio, clip_depth=clip_depth,
+			clip_actions=clip_actions, ratio=ratio, clip_depth=clip_depth+1,
 			blend_mode=blend_mode)
 			
 			sub_tags.append(ptag)
