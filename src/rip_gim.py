@@ -236,6 +236,11 @@ def list_tagF024_img(lm_data):
 			y_min = min(y_min, fv_list[1], fv_list[5], fv_list[9], fv_list[13])
 			y_max = max(y_max, fv_list[1], fv_list[5], fv_list[9], fv_list[13])
 				
+			x_min = int(x_min)
+			x_max = int(x_max)
+			y_min = int(y_min)
+			y_max = int(y_max)
+			
 			if flag == 0x41:
 			
 				ori_pic_list = list_tagF007_symbol(lm_data)
