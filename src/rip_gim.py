@@ -399,8 +399,10 @@ def list_tag0004_symbol(lm_data):
 		elif tag_type == 0x000C:
 			print ">>>>>>>>>Do Action %d" % d["as_idx"]
 			
-			# Check if 'unk0' is ever used!
-			assert not d["unk0"], "`unk0` is used!"
+			if d["unk0"] == 0x1000000:
+				print "{{{{{{{{{{Class Definition, Execute only once}}}}}}}}}}}"
+			else:
+				assert not d["unk0"]
 			
 		# Remove Object Tag
 		elif tag_type == 0x0005:

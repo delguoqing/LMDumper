@@ -314,7 +314,7 @@ DATA = {
 		("tag_type", 0x4, ">I"),
 		("tag_size", 0x4, ">I"),
 		("as_idx", 0x4, ">I"),
-		("unk0", 0x4, ">I"),
+		("unk0", 0x4, ">I"),	# unk0 == 0x1000000 => class definition?
 	),
 					
 	0x002B: (
