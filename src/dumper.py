@@ -484,7 +484,6 @@ if __name__ == "__main__":
 	parser = optparse.OptionParser()
 	parser.add_option("-f", dest="filename", help="LM file path")
 	parser.add_option("-o", dest="fout", help="output file path")
-	parser.add_option("-t", dest="texture_root", help="where your png files are.")
 	parser.add_option("-l", dest="label", help="framelabel of the sprite.")
 	parser.add_option("-i", type="int", action="store", dest="characterID", help="ID of the character to be placed on the stage.")
 	parser.add_option("-p", type="float", nargs=2, dest="pos", help="postion of the sprite. example: -p 128 128")
@@ -524,5 +523,5 @@ if __name__ == "__main__":
 				print "labels of %d" % id
 				print dic.keys()		
 		else:
-			dump(filename, options.characterID, options.label, options.pos, options.scale, options.fout, options.texture_root, options.norecreate)
-			
+			texture_root = os.path.split(options.filename)[0]
+			dump(filename, options.characterID, options.label, options.pos, options.scale, options.fout, texture_root, options.norecreate)
