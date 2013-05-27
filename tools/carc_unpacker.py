@@ -82,3 +82,6 @@ def read_0end_string(f):
 		fname += c
 		c = f.read(1)
 	return fname
+	
+if __name__ == "__main__":
+	unpack(sys.argv[1], sys.argv[2])
