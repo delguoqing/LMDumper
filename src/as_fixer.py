@@ -195,7 +195,7 @@ def build_constant_pool(symbol_table):
 		len(symbol_table)) + constant_pool
 	return action_constant_pool
 	
-def fix(abc, symbol_list, format):
+def fix(abc, symbol_list):
 	rec_list, off_list = split(abc)
 	frec_list, foff_list = [], [0,]
 	for rec in rec_list:

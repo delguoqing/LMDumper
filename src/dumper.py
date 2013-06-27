@@ -183,15 +183,14 @@ def make_normal_sprite(ctx, d, subds):
 				subd["depth"] + 1))
 			frame_cmd_cnt -= 1
 		elif subd["tag_type"] == 0x000c:
-			global format
 			bytecodes = as_list[subd["as_idx"]]["bytecode"]
-			bytecodes = as_fixer.fix(bytecodes, symbol_list, format)
+			bytecodes = as_fixer.fix(bytecodes, symbol_list)
 			sub_tags.append(swf_helper.make_do_action_tag([bytecodes]))
 			frame_cmd_cnt -= 1
 		elif subd["tag_type"] == 0xf014:
 
 			clip_action_cnt -= 1
-			bytecodes = as_fixer.fix(as_list[subd["as_idx"]]["bytecode"], symbol_list, format)
+			bytecodes = as_fixer.fix(as_list[subd["as_idx"]]["bytecode"], symbol_list)
 			event_flags = subd["clip_event_flags"]
 			keycode = 0
 			clip_action_records.append(
@@ -449,7 +448,7 @@ def dump(fname, ID, label, pos, scale, fout, img_path, norecreate):
 	id = ID or max_characterID
 	tmp_tags.append(swf_helper.make_place_object2_tag(swf_helper.PLACE_FLAG_HAS_CHARACTER|swf_helper.PLACE_FLAG_HAS_MATRIX|swf_helper.PLACE_FLAG_HAS_NAME|swf_helper.PLACE_FLAG_HAS_RATIO, 1, id=id, matrix=swf_helper.pack_matrix(scale and (scale, scale) or None, None, pos or (0, 0), ),name="main",ratio=0xFFFF))
 
-	if label is not None:
+	if label is not None and label != "all_as":
 		action_records = []
 		action_records.append("\x8B\x05\x00main\x00")   # ActionSetTarget "main"
 		frame_idx = frame_label_dict[id][label]
@@ -457,7 +456,12 @@ def dump(fname, ID, label, pos, scale, fout, img_path, norecreate):
 		action_records.append("\x06")
 		action_records.append("\x8B\x01\x00")
 		tmp_tags.append(swf_helper.make_do_action_tag(action_records))		
-	
+	if label is not None and label == "all_as":
+		print "?"
+		for as_record in ctx["as_list"]:
+			fixed_bytecode = as_fixer.fix(as_record["bytecode"], ctx["symbol_list"])
+			tmp_tags.append(swf_helper.make_do_action_tag([fixed_bytecode]))
+		
 	tmp_tags.append(swf_helper.make_show_frame_tag())
 	
 	all_tags.extend(tmp_tags)
